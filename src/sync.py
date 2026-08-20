@@ -1,12 +1,18 @@
 """The bridge sync job — pulls competitor prices and writes market snapshots.
 
-Placeholder: the actual sync logic will query the latest prices from the
-competitor-intelligence DB, normalise them, and upsert them into the
-margin-guardian DB as MarketPriceSnapshot rows.
+Queries the latest price per product from the KCI DB, normalises them,
+and writes them to the KMG DB as MarketPriceSnapshot rows. Each call
+produces one batch of snapshots with a shared captured_at timestamp.
+
+The session factories default to the module-level ones (which read from
+env vars), but both can be passed in for testing against in-memory SQLite.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional
+
+from sqlalchemy.orm import Session
 
 from src.database import (
     Competitor, KciSessionLocal, KmgSessionLocal,
@@ -14,15 +20,28 @@ from src.database import (
 )
 
 
-def sync_latest_prices() -> dict[str, int]:
+def sync_latest_prices(
+    kci_session: Optional[Session] = None,
+    kmg_session: Optional[Session] = None,
+) -> dict[str, int]:
     """Pull the latest price for each product and write a market snapshot.
 
-    Returns a summary dict: {"snapshots_written": N, "products_seen": M}.
+    Args:
+        kci_session: optional SQLAlchemy session for the source DB.
+                     Defaults to the module-level KciSessionLocal().
+        kmg_session: optional SQLAlchemy session for the destination DB.
+                     Defaults to the module-level KmgSessionLocal().
+
+    Returns:
+        {"snapshots_written": N, "products_seen": M}
     """
-    kci = KciSessionLocal()
-    kmg = KmgSessionLocal()
+    owns_kci = kci_session is None
+    owns_kmg = kmg_session is None
+    kci = kci_session or KciSessionLocal()
+    kmg = kmg_session or KmgSessionLocal()
     try:
-        # Get the latest price per product.
+        # Get the latest price per product. Order by recorded_at DESC so
+        # the first row per product key is the most recent.
         latest_prices = (
             kci.query(PriceHistory, Product, Competitor)
             .join(Product, PriceHistory.product_id == Product.id)
@@ -33,7 +52,7 @@ def sync_latest_prices() -> dict[str, int]:
 
         seen_products: set[str] = set()
         written = 0
-        captured_at = datetime.utcnow()
+        captured_at = datetime.now(timezone.utc)
 
         for ph, prod, comp in latest_prices:
             key = f"{comp.company_name}::{prod.product_name}"
@@ -56,5 +75,7 @@ def sync_latest_prices() -> dict[str, int]:
         kmg.rollback()
         raise
     finally:
-        kci.close()
-        kmg.close()
+        if owns_kci:
+            kci.close()
+        if owns_kmg:
+            kmg.close()
