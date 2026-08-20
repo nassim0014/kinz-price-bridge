@@ -12,30 +12,25 @@ immediately on startup so you don't wait one interval for the first sync.
 from __future__ import annotations
 
 import argparse
-import logging
 import sys
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from src.config import LOG_LEVEL, SYNC_INTERVAL_MINUTES
+from src.config import SYNC_INTERVAL_MINUTES
+from src.logging_config import get_logger
 from src.sync import sync_latest_prices
 
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-log = logging.getLogger("kinz-price-bridge")
+log = get_logger("kinz-price-bridge")
 
 
 def run_once() -> dict[str, int]:
     """Run the sync job once and return the summary."""
-    log.info("starting sync")
+    log.info("sync_started")
     try:
         result = sync_latest_prices()
-        log.info("sync complete: %s", result)
         return result
     except Exception as e:
-        log.error("sync failed: %s", e, exc_info=True)
+        log.error("sync_failed", extra={"error": str(e), "error_type": type(e).__name__})
         raise
 
 
