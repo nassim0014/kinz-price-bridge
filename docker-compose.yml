@@ -1,0 +1,40 @@
+# =============================================================================
+# kinz-price-bridge — docker-compose
+# =============================================================================
+# Runs the bridge service with the sync scheduler. The FastAPI health
+# endpoint is exposed on :8000 for probes; the scheduler runs in the
+# same container (default CMD).
+#
+# Usage:
+#   docker compose up --build -d          # start in background
+#   docker compose logs -f                # tail logs
+#   docker compose down                   # stop
+# =============================================================================
+
+services:
+  bridge:
+    build: .
+    container_name: kinz-price-bridge
+    restart: unless-stopped
+    environment:
+      # Source DB (read from competitor-intelligence)
+      KCI_DATABASE_URL: ${KCI_DATABASE_URL:-sqlite:///data/competitors.db}
+      # Destination DB (write to margin-guardian)
+      KMG_DATABASE_URL: ${KMG_DATABASE_URL:-sqlite:///data/margin.db}
+      # Sync interval (minutes)
+      SYNC_INTERVAL_MINUTES: ${SYNC_INTERVAL_MINUTES:-30}
+      # Log level
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      # Persist local SQLite databases (dev only — production uses Postgres)
+      - ./data:/app/data
+    ports:
+      # Expose the FastAPI app for health probes
+      - "8000:8000"
+    healthcheck:
+      # curl the /health endpoint every 30s; 3 failures = unhealthy
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
