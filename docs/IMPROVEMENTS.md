@@ -15,9 +15,12 @@ needed; the scaffold has no Playwright deps.
 price per product from the KCI DB, normalise, and upsert into the KMG
 DB. Add integration tests against in-memory SQLite databases.
 
-### 3. Add APScheduler entrypoint
-`scripts/run_sync.py` — a CLI entrypoint that starts APScheduler and
-runs `sync_latest_prices()` every `SYNC_INTERVAL_MINUTES` minutes.
+### 3. ~~Add APScheduler entrypoint~~ ✅
+`scripts/run_sync.py` — CLI entrypoint that starts APScheduler and runs
+`sync_latest_prices()` every `SYNC_INTERVAL_MINUTES` minutes. Two modes:
+default (run once + exit) and `--watch` (blocking scheduler). 6 tests
+in `tests/test_run_sync.py` (CLI parsing, run_once mock, exception
+handling, --watch flag, --interval override).
 
 ### 4. Add FastAPI health endpoint ✅ (this PR)
 `src/api.py` — a minimal FastAPI app with `/health` (returns 200 + JSON
