@@ -42,14 +42,34 @@ ruff check .
 src/
   __init__.py
   config.py          # environment + settings
-  database.py         # SQLAlchemy engine + models (placeholder)
-  sync.py             # the bridge job (placeholder)
+  database.py         # SQLAlchemy engine + models
+  sync.py             # the bridge job
+  api.py              # FastAPI app with /health endpoint
 tests/
   __init__.py
   test_smoke.py       # import smoke test
+  test_api.py         # /health endpoint tests
+  test_sync.py        # sync job integration tests
+scripts/
+  run_sync.py         # APScheduler entrypoint (run once or --watch)
 docs/
   IMPROVEMENTS.md     # backlog
+Dockerfile            # single-stage Python 3.12-slim
+docker-compose.yml    # sync scheduler service + healthcheck
 CLAUDE.md             # agent guidance
+```
+
+## Docker
+
+```bash
+# Build and run the sync scheduler (default: every 30 min)
+docker compose up --build -d
+
+# Run the FastAPI app instead (for health probes)
+docker compose run --rm bridge uvicorn src.api:app --host 0.0.0.0 --port 8000
+
+# Check health
+curl http://localhost:8000/health
 ```
 
 ## Owner
