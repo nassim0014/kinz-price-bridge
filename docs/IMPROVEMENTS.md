@@ -28,9 +28,11 @@ status) so the service is probeable from Docker/k8s health checks.
 Tests in `tests/test_api.py` (3 tests: 200 response, ok status, ISO
 timestamp).
 
-### 5. Dockerfile + docker-compose
-`Dockerfile` (single-stage, Python 3.12-slim) + `docker-compose.yml`
-that runs the sync scheduler.
+### 5. ~~Dockerfile + docker-compose~~ ✅
+`Dockerfile` (single-stage, Python 3.12-slim, non-root user) +
+`docker-compose.yml` (sync scheduler service with healthcheck on
+:8000). `.dockerignore` excludes venv/data/git. Default CMD runs
+`scripts/run_sync --watch`.
 
 ## Done
 
