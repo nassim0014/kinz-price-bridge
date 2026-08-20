@@ -39,3 +39,17 @@ timestamp).
 - **Initial scaffold** — genesis loop 2026-08-20. README, .gitignore,
   pyproject.toml, requirements.txt, src/ (config, database, sync),
   tests/test_smoke.py (4 tests), CLAUDE.md, docs/IMPROVEMENTS.md.
+
+## Next (post-backlog)
+
+### 6. Structured logging ✅
+Added `src/logging_config.py` with a `JSONFormatter` that emits one
+JSON object per log line (timestamp, level, logger, message + any
+extra fields). Wired into `src/sync.py` and `scripts/run_sync.py`.
+Sync success/failure now logs structured fields
+(`snapshots_written`, `products_seen`, `error_type`) that Docker/k8s
+log aggregation (Loki, Elasticsearch) can parse without regex.
+
+7 new tests in `tests/test_logging_config.py` cover: basic JSON
+formatting, extra-field merging, exception info, ISO-8601 timestamp,
+logger handler setup, no-propagation, JSON stdout output.
