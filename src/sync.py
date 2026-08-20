@@ -18,6 +18,9 @@ from src.database import (
     Competitor, KciSessionLocal, KmgSessionLocal,
     MarketPriceSnapshot, PriceHistory, Product,
 )
+from src.logging_config import get_logger
+
+log = get_logger(__name__)
 
 
 def sync_latest_prices(
@@ -70,9 +73,14 @@ def sync_latest_prices(
             written += 1
 
         kmg.commit()
+        log.info(
+            "sync_complete",
+            extra={"snapshots_written": written, "products_seen": len(seen_products)},
+        )
         return {"snapshots_written": written, "products_seen": len(seen_products)}
-    except Exception:
+    except Exception as e:
         kmg.rollback()
+        log.error("sync_failed", extra={"error": str(e), "error_type": type(e).__name__})
         raise
     finally:
         if owns_kci:
