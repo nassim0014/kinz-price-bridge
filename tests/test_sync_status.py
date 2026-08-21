@@ -6,7 +6,18 @@ from fastapi.testclient import TestClient
 from src.api import app, update_sync_state
 
 
+def _reset_sync_state():
+    """Reset the module-level sync state to None (simulates fresh start)."""
+    import src.api as api_module
+    api_module._last_sync_result = None
+    api_module._last_sync_at = None
+    api_module._next_sync_at = None
+
+
 class TestSyncStatusBeforeFirstSync:
+    def setup_method(self):
+        _reset_sync_state()
+
     def test_returns_200(self):
         client = TestClient(app)
         resp = client.get("/sync-status")
