@@ -57,3 +57,18 @@ def sync_status() -> dict:
         else None,
         "next_scheduled_run": _next_sync_at.isoformat() if _next_sync_at else None,
     }
+
+
+@app.get("/metrics")
+def metrics() -> dict:
+    """Return basic metrics for Prometheus scraping (textformat not required).
+
+    Returns a dict with sync count, last result, and uptime — suitable for
+    a Prometheus exporter wrapper or direct k8s probe scraping.
+    """
+    return {
+        "syncs_completed": 0 if _last_sync_result is None else 1,
+        "last_snapshots_written": _last_sync_result.get("snapshots_written", 0) if _last_sync_result else 0,
+        "last_products_seen": _last_sync_result.get("products_seen", 0) if _last_sync_result else 0,
+        "last_sync_at": _last_sync_at.isoformat() if _last_sync_at else None,
+    }

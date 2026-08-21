@@ -54,3 +54,26 @@ class TestSyncStatusAfterSync:
         resp = client.get("/sync-status")
         body = resp.json()
         assert body["next_scheduled_run"] is not None
+
+
+class TestMetricsEndpoint:
+    def test_returns_200(self):
+        client = TestClient(app)
+        resp = client.get("/metrics")
+        assert resp.status_code == 200
+
+    def test_returns_zero_before_first_sync(self):
+        _reset_sync_state()
+        client = TestClient(app)
+        resp = client.get("/metrics")
+        body = resp.json()
+        assert body["syncs_completed"] == 0
+        assert body["last_snapshots_written"] == 0
+
+    def test_returns_data_after_sync(self):
+        update_sync_state({"snapshots_written": 5, "products_seen": 5})
+        client = TestClient(app)
+        resp = client.get("/metrics")
+        body = resp.json()
+        assert body["syncs_completed"] == 1
+        assert body["last_snapshots_written"] == 5
