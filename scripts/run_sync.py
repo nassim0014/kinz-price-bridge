@@ -19,6 +19,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from src.config import SYNC_INTERVAL_MINUTES
 from src.logging_config import get_logger
 from src.sync import sync_latest_prices
+from src.api import update_sync_state
 
 log = get_logger("kinz-price-bridge")
 
@@ -28,6 +29,8 @@ def run_once() -> dict[str, int]:
     log.info("sync_started")
     try:
         result = sync_latest_prices()
+        # Update the /sync-status endpoint state
+        update_sync_state(result)
         return result
     except Exception as e:
         log.error("sync_failed", extra={"error": str(e), "error_type": type(e).__name__})
