@@ -42,7 +42,7 @@ def kmg_session():
 def test_sync_empty_kci_writes_nothing(kci_session, kmg_session):
     """An empty source DB produces zero snapshots."""
     result = sync_latest_prices(kci_session=kci_session, kmg_session=kmg_session)
-    assert result == {"snapshots_written": 0, "products_seen": 0}
+    assert result == {"snapshots_written": 0, "products_seen": 0, "outliers_rejected": 0}
     assert kmg_session.query(MarketPriceSnapshot).count() == 0
 
 
@@ -168,3 +168,97 @@ def test_sync_ignores_products_without_price_history(kci_session, kmg_session):
 
     snap = kmg_session.query(MarketPriceSnapshot).first()
     assert snap.product_name == "With History"
+
+
+# ── Price outlier guard ─────────────────────────────────────────────
+
+def test_sync_rejects_price_outlier(kci_session, kmg_session):
+    """A price that spikes far past the last known snapshot is not written."""
+    now = datetime.now(timezone.utc)
+
+    # A prior snapshot already exists in KMG at 45.0 TND.
+    kmg_session.add(MarketPriceSnapshot(
+        product_name="Argan Oil 100ml", competitor_name="Alpha Cosmetics",
+        price_tnd=45.0, category="Huiles", captured_at=now - timedelta(days=1),
+    ))
+    kmg_session.commit()
+
+    comp = Competitor(company_name="Alpha Cosmetics")
+    kci_session.add(comp)
+    kci_session.flush()
+    prod = Product(competitor_id=comp.id, product_name="Argan Oil 100ml",
+                   category="Huiles", price_tnd=999.0)
+    kci_session.add(prod)
+    kci_session.flush()
+    # A scraper glitch: 999.0 vs a last known 45.0 is a ~22x spike.
+    kci_session.add(PriceHistory(product_id=prod.id, price_tnd=999.0, recorded_at=now))
+    kci_session.commit()
+
+    result = sync_latest_prices(kci_session=kci_session, kmg_session=kmg_session)
+    assert result["snapshots_written"] == 0
+    assert result["outliers_rejected"] == 1
+
+    # The prior 45.0 snapshot is still the latest row for this pair —
+    # nothing new was written on top of it.
+    snapshots = (
+        kmg_session.query(MarketPriceSnapshot)
+        .filter_by(product_name="Argan Oil 100ml", competitor_name="Alpha Cosmetics")
+        .all()
+    )
+    assert len(snapshots) == 1
+    assert snapshots[0].price_tnd == 45.0
+
+
+def test_sync_allows_normal_price_change(kci_session, kmg_session):
+    """A modest price change against the last snapshot still writes through."""
+    now = datetime.now(timezone.utc)
+
+    kmg_session.add(MarketPriceSnapshot(
+        product_name="Argan Oil 100ml", competitor_name="Alpha Cosmetics",
+        price_tnd=45.0, category="Huiles", captured_at=now - timedelta(days=1),
+    ))
+    kmg_session.commit()
+
+    comp = Competitor(company_name="Alpha Cosmetics")
+    kci_session.add(comp)
+    kci_session.flush()
+    prod = Product(competitor_id=comp.id, product_name="Argan Oil 100ml",
+                   category="Huiles", price_tnd=40.0)
+    kci_session.add(prod)
+    kci_session.flush()
+    kci_session.add(PriceHistory(product_id=prod.id, price_tnd=40.0, recorded_at=now))
+    kci_session.commit()
+
+    result = sync_latest_prices(kci_session=kci_session, kmg_session=kmg_session)
+    assert result["snapshots_written"] == 1
+    assert result["outliers_rejected"] == 0
+
+    latest = (
+        kmg_session.query(MarketPriceSnapshot)
+        .filter_by(product_name="Argan Oil 100ml", competitor_name="Alpha Cosmetics")
+        .order_by(MarketPriceSnapshot.captured_at.desc())
+        .first()
+    )
+    assert latest.price_tnd == 40.0
+
+
+def test_sync_first_time_price_is_never_an_outlier(kci_session, kmg_session):
+    """With no prior KMG snapshot for a pair, any first price writes through."""
+    now = datetime.now(timezone.utc)
+
+    comp = Competitor(company_name="Alpha Cosmetics")
+    kci_session.add(comp)
+    kci_session.flush()
+    prod = Product(competitor_id=comp.id, product_name="Argan Oil 100ml",
+                   category="Huiles", price_tnd=999.0)
+    kci_session.add(prod)
+    kci_session.flush()
+    kci_session.add(PriceHistory(product_id=prod.id, price_tnd=999.0, recorded_at=now))
+    kci_session.commit()
+
+    result = sync_latest_prices(kci_session=kci_session, kmg_session=kmg_session)
+    assert result["snapshots_written"] == 1
+    assert result["outliers_rejected"] == 0
+
+    snap = kmg_session.query(MarketPriceSnapshot).first()
+    assert snap.price_tnd == 999.0
