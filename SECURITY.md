@@ -2,31 +2,27 @@
 
 ## Supported Versions
 
-Only the latest `main` branch is supported with security updates.
+Only the latest `main` branch is supported.
 
 ## Reporting a Vulnerability
 
 Email: nassim@kinzoils.com
 
-Please include:
-- A description of the vulnerability
-- Steps to reproduce
-- Potential impact
-- Suggested fix (if any)
-
-You will receive a response within 48 hours.
+Please include a description, reproduction steps, impact, and suggested fix.
+Response within 48 hours.
 
 ## Security Measures
 
-- **Ruff** lint checks in CI (error-only rules: E9, F, B)
-- **Pre-commit hooks** for ruff (optional, `.pre-commit-config.yaml`)
-- No secrets in the repository (gitignored `data/competitors_seed.json`)
-- SQLite WAL mode for concurrent read/write safety
-- No direct database writes from the dashboard (read-only)
-- API uses FastAPI with input validation via Pydantic
+- **Ruff** lint checks in CI
+- **Pre-commit hooks** for ruff (`.pre-commit-config.yaml`)
+- Database credentials via environment variables (never hardcoded)
+- Non-root Docker container (`appuser`)
+- Health check endpoint for probe-based monitoring
+- No secrets in the repository (`.gitignore` covers `.env`, `*.db`)
 
-## Data Privacy
+## Architecture
 
-- Competitor contact data (77 real contacts) is gitignored and never committed
-- Scraping is rate-limited and respects robots.txt
-- No PII is stored beyond publicly available business contact information
+The bridge service reads from the competitor-intelligence database
+(read-only) and writes to the margin-guardian database. It does not
+expose any write endpoints — the only API routes are `GET /health`,
+`GET /sync-status`, and `GET /metrics` (all read-only).
