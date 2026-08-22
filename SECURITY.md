@@ -14,8 +14,8 @@ Response within 48 hours.
 ## Security Measures
 
 - **Ruff** lint checks in CI
-- **Pre-commit hooks** for ruff (`.pre-commit-config.yaml`)
-- Database credentials via environment variables (never hardcoded)
+- **Pre-commit hooks** for ruff
+- Database credentials via environment variables
 - Non-root Docker container (`appuser`)
 - Health check endpoint for probe-based monitoring
 - No secrets in the repository (`.gitignore` covers `.env`, `*.db`)
@@ -23,6 +23,5 @@ Response within 48 hours.
 ## Architecture
 
 The bridge service reads from the competitor-intelligence database
-(read-only) and writes to the margin-guardian database. It does not
-expose any write endpoints — the only API routes are `GET /health`,
-`GET /sync-status`, and `GET /metrics` (all read-only).
+(read-only) and writes to the margin-guardian database. The only API
+routes are `GET /health`, `GET /sync-status`, and `GET /metrics`.
