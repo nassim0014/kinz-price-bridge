@@ -8,12 +8,21 @@ test database.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 
 from src.config import KCI_DATABASE_URL, KMG_DATABASE_URL
+
+
+def _naive_utcnow() -> datetime:
+    """Naive UTC now for DateTime column defaults.
+
+    Replaces datetime.utcnow (deprecated, scheduled for removal). These
+    columns hold naive UTC, so compute in UTC explicitly and drop tzinfo.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):
@@ -51,7 +60,7 @@ class PriceHistory(Base):
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     price_tnd = Column(Float, nullable=False)
-    recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    recorded_at = Column(DateTime, nullable=False, default=_naive_utcnow)
     source = Column(String, nullable=True)
 
 
@@ -67,7 +76,7 @@ class MarketPriceSnapshot(Base):
     competitor_name = Column(String, nullable=False)
     price_tnd = Column(Float, nullable=False)
     category = Column(String, nullable=True)
-    captured_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    captured_at = Column(DateTime, nullable=False, default=_naive_utcnow)
 
 
 # ── Engine + session factories ────────────────────────────────────────
