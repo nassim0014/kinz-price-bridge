@@ -10,10 +10,12 @@ PR, smallest first.
 Same shape as kinz-competitor-intelligence's `tests.yml`. No browser
 needed; the scaffold has no Playwright deps.
 
-### 2. Implement the sync job end-to-end
-`src/sync.py` has a placeholder. Wire it to actually query the latest
-price per product from the KCI DB, normalise, and upsert into the KMG
-DB. Add integration tests against in-memory SQLite databases.
+### 2. ~~Implement the sync job end-to-end~~ ✅
+`src/sync.py` is implemented: it queries the latest price per product
+from the KCI DB, applies a price-outlier guard, and writes
+`MarketPriceSnapshot` rows to the KMG DB (shared `captured_at` per batch,
+commit/rollback, structured logging). Integration tests against in-memory
+SQLite in `tests/test_sync.py` + `tests/test_sync_status.py` (16 tests).
 
 ### 3. ~~Add APScheduler entrypoint~~ ✅
 `scripts/run_sync.py` — CLI entrypoint that starts APScheduler and runs
