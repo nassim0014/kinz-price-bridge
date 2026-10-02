@@ -4,6 +4,12 @@ Queries the latest price per product from the KCI DB, normalises them,
 and writes them to the KMG DB as MarketPriceSnapshot rows. Each call
 produces one batch of snapshots with a shared captured_at timestamp.
 
+Both hot reads are window queries, so cost does not grow with table or
+batch size: the latest price per product comes from one ROW_NUMBER()
+query over price_history (no full-table load), and the last known
+snapshot per product+competitor pair comes from one ROW_NUMBER() query
+over market_price_snapshots (no per-pair lookups).
+
 A price outlier guard sits in front of the write: if a product's new
 price is wildly higher or lower than the last snapshot already on file
 for that product+competitor pair, the write is skipped and a structured
@@ -18,6 +24,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.config import PRICE_OUTLIER_MAX_RATIO
@@ -49,17 +56,64 @@ def _is_price_outlier(new_price: float, last_price: float) -> bool:
     return ratio > PRICE_OUTLIER_MAX_RATIO or ratio < (1 / PRICE_OUTLIER_MAX_RATIO)
 
 
-def _latest_snapshot_price(
-    kmg: Session, product_name: str, competitor_name: str
-) -> Optional[float]:
-    """The price on the most recent MarketPriceSnapshot for this pair, if any."""
-    last = (
-        kmg.query(MarketPriceSnapshot)
-        .filter_by(product_name=product_name, competitor_name=competitor_name)
-        .order_by(MarketPriceSnapshot.captured_at.desc())
-        .first()
+def _latest_price_rows(kci: Session) -> list:
+    """The most recent PriceHistory row per product, joined to its Product and Competitor.
+
+    ROW_NUMBER() partitioned by product_id (newest recorded_at first, id
+    as the tie-break) picks one row per product inside the database, so
+    the whole price_history join is never loaded into memory. Rows come
+    back newest-first, so a duplicated product_name under one competitor
+    still resolves the way the old full-scan loop resolved it: the
+    freshest record owns the pair.
+    """
+    rn = (
+        func.row_number()
+        .over(
+            partition_by=PriceHistory.product_id,
+            order_by=[PriceHistory.recorded_at.desc(), PriceHistory.id.desc()],
+        )
+        .label("rn")
     )
-    return last.price_tnd if last is not None else None
+    ranked = kci.query(PriceHistory.id.label("ph_id"), rn).subquery()
+    latest_ids = kci.query(ranked.c.ph_id).filter(ranked.c.rn == 1).subquery()
+    return (
+        kci.query(PriceHistory, Product, Competitor)
+        .join(Product, PriceHistory.product_id == Product.id)
+        .join(Competitor, Product.competitor_id == Competitor.id)
+        .join(latest_ids, PriceHistory.id == latest_ids.c.ph_id)
+        .order_by(PriceHistory.recorded_at.desc(), PriceHistory.id.desc())
+        .all()
+    )
+
+
+def _latest_snapshot_prices(kmg: Session) -> dict[tuple[str, str], float]:
+    """Last snapshot price per (product_name, competitor_name), in one query."""
+    rn = (
+        func.row_number()
+        .over(
+            partition_by=[
+                MarketPriceSnapshot.product_name,
+                MarketPriceSnapshot.competitor_name,
+            ],
+            order_by=[
+                MarketPriceSnapshot.captured_at.desc(),
+                MarketPriceSnapshot.id.desc(),
+            ],
+        )
+        .label("rn")
+    )
+    ranked = kmg.query(
+        MarketPriceSnapshot.product_name.label("pn"),
+        MarketPriceSnapshot.competitor_name.label("cn"),
+        MarketPriceSnapshot.price_tnd.label("price"),
+        rn,
+    ).subquery()
+    rows = (
+        kmg.query(ranked.c.pn, ranked.c.cn, ranked.c.price)
+        .filter(ranked.c.rn == 1)
+        .all()
+    )
+    return {(pn, cn): price for pn, cn, price in rows}
 
 
 def sync_latest_prices(
@@ -82,15 +136,11 @@ def sync_latest_prices(
     kci = kci_session or KciSessionLocal()
     kmg = kmg_session or KmgSessionLocal()
     try:
-        # Get the latest price per product. Order by recorded_at DESC so
-        # the first row per product key is the most recent.
-        latest_prices = (
-            kci.query(PriceHistory, Product, Competitor)
-            .join(Product, PriceHistory.product_id == Product.id)
-            .join(Competitor, Product.competitor_id == Competitor.id)
-            .order_by(PriceHistory.recorded_at.desc())
-            .all()
-        )
+        # Latest price per product, one window query; last known snapshot
+        # price per pair, one window query. No full-table load, no per-pair
+        # lookups.
+        latest_prices = _latest_price_rows(kci)
+        last_prices = _latest_snapshot_prices(kmg)
 
         seen_products: set[str] = set()
         written = 0
@@ -103,7 +153,7 @@ def sync_latest_prices(
                 continue
             seen_products.add(key)
 
-            last_price = _latest_snapshot_price(kmg, prod.product_name, comp.company_name)
+            last_price = last_prices.get((prod.product_name, comp.company_name))
             if last_price is not None and _is_price_outlier(ph.price_tnd, last_price):
                 rejected += 1
                 log.warning(
