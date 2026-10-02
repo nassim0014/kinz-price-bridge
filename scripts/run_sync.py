@@ -1,4 +1,4 @@
-"""APScheduler entrypoint — runs the sync job periodically.
+"""APScheduler entrypoint - runs the sync job periodically.
 
 Usage:
     python -m scripts.run_sync                   # run once + exit (default)
@@ -50,7 +50,7 @@ def run_watch(interval_minutes: int = SYNC_INTERVAL_MINUTES) -> None:
         max_instances=1,
         coalesce=True,
     )
-    log.info("scheduler started — next run in %d minutes (Ctrl+C to exit)", interval_minutes)
+    log.info("scheduler started - next run in %d minutes (Ctrl+C to exit)", interval_minutes)
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):

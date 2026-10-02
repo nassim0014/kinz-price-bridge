@@ -16,7 +16,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# In-memory state — updated by the sync job. Persisted to the DB in a
+# In-memory state - updated by the sync job. Persisted to the DB in a
 # future iteration; for now this is sufficient for the /sync-status endpoint
 # to return something useful within a single process lifetime.
 _last_sync_result: dict | None = None
@@ -63,7 +63,7 @@ def sync_status() -> dict:
 def metrics() -> dict:
     """Return basic metrics for Prometheus scraping (textformat not required).
 
-    Returns a dict with sync count, last result, and uptime — suitable for
+    Returns a dict with sync count, last result, and uptime - suitable for
     a Prometheus exporter wrapper or direct k8s probe scraping.
     """
     return {

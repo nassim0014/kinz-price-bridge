@@ -1,4 +1,4 @@
-# kinz-price-bridge — .dockerignore
+# kinz-price-bridge - .dockerignore
 
 # Python
 __pycache__/

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env if present — local dev only; production uses real env vars.
+# Load .env if present - local dev only; production uses real env vars.
 load_dotenv()
 
 ROOT = Path(__file__).resolve().parent.parent

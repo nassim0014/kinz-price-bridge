@@ -28,9 +28,9 @@ uvicorn src.api:app --host 0.0.0.0 --port 8000
 ```
 
 Endpoints:
-- `GET /health` — service health check
-- `GET /sync-status` — last sync result + next scheduled run
-- `GET /metrics` — sync count, last result, timestamp (for Prometheus)
+- `GET /health` - service health check
+- `GET /sync-status` - last sync result + next scheduled run
+- `GET /metrics` - sync count, last result, timestamp (for Prometheus)
 
 ## Docker
 

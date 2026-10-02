@@ -1,4 +1,4 @@
-"""Smoke tests — verify the scaffold imports cleanly."""
+"""Smoke tests - verify the scaffold imports cleanly."""
 from __future__ import annotations
 
 
