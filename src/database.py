@@ -1,6 +1,6 @@
 """SQLAlchemy models for kinz-price-bridge.
 
-Placeholder — the actual models will mirror the subset of
+Placeholder - the actual models will mirror the subset of
 competitor-intelligence tables this bridge reads from (Competitor,
 Product, PriceHistory) and the margin-guardian tables it writes to.
 Defined here so the bridge can be tested in isolation against a
@@ -94,7 +94,7 @@ def _make_engine(database_url: str):
     fails instantly with "database is locked" instead of waiting.
 
     journal_mode=WAL is persisted in the database file itself, but
-    busy_timeout is a per-connection setting — it must be applied via a
+    busy_timeout is a per-connection setting - it must be applied via a
     connect listener so every pooled connection gets it, not just the
     first one opened at import time.
     """

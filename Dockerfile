@@ -1,5 +1,5 @@
 # =============================================================================
-# kinz-price-bridge — Dockerfile
+# kinz-price-bridge - Dockerfile
 # =============================================================================
 # Single-stage build on Python 3.12-slim. Runs the sync scheduler in
 # --watch mode by default (every SYNC_INTERVAL_MINUTES minutes).
@@ -14,7 +14,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 # Unbuffered stdout so logs appear immediately in docker logs
 ENV PYTHONUNBUFFERED=1
-# Default sync interval (minutes) — override at runtime
+# Default sync interval (minutes) - override at runtime
 ENV SYNC_INTERVAL_MINUTES=30
 
 WORKDIR /app

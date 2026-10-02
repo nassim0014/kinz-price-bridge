@@ -1,4 +1,4 @@
-"""Tests for src/logging_config.py — structured JSON logging."""
+"""Tests for src/logging_config.py - structured JSON logging."""
 from __future__ import annotations
 
 import json

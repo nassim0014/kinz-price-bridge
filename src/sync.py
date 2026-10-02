@@ -1,4 +1,4 @@
-"""The bridge sync job — pulls competitor prices and writes market snapshots.
+"""The bridge sync job - pulls competitor prices and writes market snapshots.
 
 Queries the latest price per product from the KCI DB, normalises them,
 and writes them to the KMG DB as MarketPriceSnapshot rows. Each call
@@ -40,7 +40,7 @@ def _is_price_outlier(new_price: float, last_price: float) -> bool:
     price for the same product+competitor pair.
 
     A non-positive last_price can't yield a meaningful ratio (already
-    corrupt data) — treat it as "not an outlier" rather than divide by
+    corrupt data) - treat it as "not an outlier" rather than divide by
     zero, and let the new value through so it can self-correct.
     """
     if last_price <= 0:

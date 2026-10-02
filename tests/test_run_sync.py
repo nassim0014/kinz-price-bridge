@@ -2,7 +2,7 @@
 
 Tests the CLI argument parsing + that run_once() calls sync_latest_prices
 and returns its result. Does NOT start the blocking scheduler (that would
-hang the test) — run_watch is tested only via its run_once() first call.
+hang the test) - run_watch is tested only via its run_once() first call.
 """
 from __future__ import annotations
 

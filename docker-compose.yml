@@ -1,5 +1,5 @@
 # =============================================================================
-# kinz-price-bridge — docker-compose
+# kinz-price-bridge - docker-compose
 # =============================================================================
 # Runs the bridge service with the sync scheduler. The FastAPI health
 # endpoint is exposed on :8000 for probes; the scheduler runs in the
@@ -26,7 +26,7 @@ services:
       # Log level
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
-      # Persist local SQLite databases (dev only — production uses Postgres)
+      # Persist local SQLite databases (dev only - production uses Postgres)
       - ./data:/app/data
     ports:
       # Expose the FastAPI app for health probes

@@ -1,7 +1,7 @@
 """Integration tests for the sync job.
 
 Uses in-memory SQLite databases for both source (KCI) and destination
-(KMG) so the tests run in isolation — no real database needed.
+(KMG) so the tests run in isolation - no real database needed.
 """
 from __future__ import annotations
 
@@ -198,7 +198,7 @@ def test_sync_rejects_price_outlier(kci_session, kmg_session):
     assert result["snapshots_written"] == 0
     assert result["outliers_rejected"] == 1
 
-    # The prior 45.0 snapshot is still the latest row for this pair —
+    # The prior 45.0 snapshot is still the latest row for this pair -
     # nothing new was written on top of it.
     snapshots = (
         kmg_session.query(MarketPriceSnapshot)

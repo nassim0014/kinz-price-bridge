@@ -15,8 +15,7 @@ market in real time.
 
 ## Status
 
-**Scaffold** — created by the genesis loop on 2026-08-20. No
-functional code yet. See `docs/IMPROVEMENTS.md` for the backlog.
+**Scaffold** - created on 2026-08-20. No functional code yet.
 
 ## Stack
 
@@ -32,7 +31,7 @@ functional code yet. See `docs/IMPROVEMENTS.md` for the backlog.
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-pytest -q          # no tests yet — will pass vacuously
+pytest -q          # no tests yet - will pass vacuously
 ruff check .
 ```
 
@@ -53,10 +52,8 @@ tests/
 scripts/
   run_sync.py         # APScheduler entrypoint (run once or --watch)
 docs/
-  IMPROVEMENTS.md     # backlog
 Dockerfile            # single-stage Python 3.12-slim
 docker-compose.yml    # sync scheduler service + healthcheck
-CLAUDE.md             # agent guidance
 ```
 
 ## Docker
@@ -74,4 +71,4 @@ curl http://localhost:8000/health
 
 ## Owner
 
-Nassim K. — KINZ (`kinzoils.com`), Tunisian natural cosmetics.
+Nassim K. - KINZ (`kinzoils.com`), Tunisian natural cosmetics.
